@@ -16,4 +16,12 @@ p.d1 = p.l1;
 p.d2 = 0;
 p.d3 = 0;
 p.alpha = [pi / 2; 0; 0];
+
+% Límites articulares. El artículo no los publica. Se eligieron para que
+% el corte x = 0 del espacio de trabajo tenga la forma de herradura de la
+% Figura 5 del artículo (alcance máximo l1 + l2 + l3 = 0.57 m arriba,
+% hueco interior simétrico y base cortada cerca de z = -0.2 m).
+% Son supuestos de esta simulación, no datos del banco.
+p.qmin = deg2rad([-180; -30; -120]);
+p.qmax = deg2rad([ 180;  90;  120]);
 end

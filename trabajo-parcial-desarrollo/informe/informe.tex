@@ -7,8 +7,10 @@
 \usepackage[margin=2.4cm]{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+\usepackage{graphicx}
 \usepackage{tikz}
 \usepackage{enumitem}
+\usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{setspace}
 
@@ -21,90 +23,156 @@
 \setstretch{1.08}
 \setlist[enumerate]{itemsep=0.25em,topsep=0.4em}
 \setlist[itemize]{itemsep=0.25em,topsep=0.4em}
+\graphicspath{{../matlab/figuras/}{./}}
 
 \newcommand{\DHL}{\ensuremath{\mathrm{DHL}}}
+% Texto que el autor debe completar antes de entregar.
+\newcommand{\pendiente}[1]{\textcolor{red}{[#1]}}
+% Figura de la simulación: si el PNG aún no existe, deja un recuadro.
+\newcommand{\figsim}[2]{%
+  \IfFileExists{../matlab/figuras/#1.png}%
+    {\includegraphics[width=0.78\linewidth]{#1}}%
+    {\fbox{\parbox[c][4cm][c]{0.9\linewidth}{\centering\small
+      Ejecutar \texttt{simular\_parcial} en MATLAB: genera\\
+      \texttt{matlab/figuras/\detokenize{#1}.png}}}}%
+  \caption{#2}}
 
 \begin{document}
 
 \begin{titlepage}
 \hypersetup{pageanchor=false}
 \centering
-\vspace*{1.2cm}
+\vspace*{0.8cm}
+\IfFileExists{logo-uni.png}%
+  {\includegraphics[height=3.2cm]{logo-uni.png}\\[0.6cm]}%
+  {\pendiente{Logotipo oficial y actual de la UNI: guardar como informe/logo-uni.png}\\[0.6cm]}
 {\large Universidad Nacional de Ingeniería}\\[0.4cm]
-{\large [Nombre oficial de la maestría]}\\[0.3cm]
-{\small Pegar aquí el logotipo oficial y actual de la UNI.}\\[1.6cm]
+{\large \pendiente{Nombre oficial de la maestría}}\\[1.6cm]
 {\LARGE Trabajo Parcial}\\[0.8cm]
-{\Large Robot antropomórfico de 3 grados de libertad}\\[2.2cm]
+{\Large Robot antropomórfico de 3 grados de libertad:\\[0.2cm]
+cinemática, singularidades y control cinemático}\\[2.0cm]
 \begin{tabular}{@{}ll@{}}
-Autor & [Apellidos, nombres] \\[0.35cm]
-Curso & Robótica y sistemas autónomos \\[0.35cm]
+Autor(es) & \pendiente{Apellidos y nombres} \\[0.35cm]
+Curso & Robótica y Sistemas Autónomos \\[0.35cm]
 Docente & Ing.\ Wilson Dennis Reyes Vásquez \\[0.35cm]
 Semestre & 2026-2 \\
 \end{tabular}
 \vfill
-{\small Simulación en MATLAB de la cinemática directa, la inversa,\\
-la cinemática diferencial, las singularidades y el control cinemático.}
 \hypersetup{pageanchor=true}
 \end{titlepage}
 \setcounter{page}{2}
 
+\tableofcontents
+\newpage
+
 \section{Introducción}
 
-Un antropomórfico de tres grados de libertad tiene tres articulaciones rotativas. La primera gira alrededor de un eje vertical y las dos siguientes alrededor de ejes horizontales paralelos. La punta se mueve en el espacio. Este trabajo simula ese robot en MATLAB, con el método de las prácticas: cinemática directa, inversa geométrica, jacobiano de la posición, singularidades y control cinemático.
+Los manipuladores antropomórficos son la configuración más común en la robótica industrial. Su cadena de tres articulaciones rotativas (cintura, hombro y codo) permite posicionar la punta en un volumen amplio con una estructura compacta, y sobre ella se montan las muñecas que orientan la herramienta (Siciliano et al., 2009). Antes de pensar en la dinámica o en técnicas de inteligencia artificial, cualquier aplicación de estos brazos necesita resolver bien su cinemática: saber dónde está la punta, qué ángulos la llevan a un punto, cómo se relacionan las velocidades y en qué posturas el robot pierde movilidad.
 
-El modelo es el manipulador de tres grados de libertad de Ramzy, Hammad y Maged \cite{ramzy2024}. El resumen del artículo está en \texttt{fuentes/resumen-ramzy-2024.md}. El artículo lo construye como banco de pruebas con eslabones de rigidez variable. Para la cinemática de posición dice que puede tratarse como un manipulador rígido, y da la cadena de Denavit--Hartenberg de un antropomórfico de tres rotativas. El parcial usa esa cadena y los largos de su Tabla~2. La dinámica con resortes y amortiguadores queda fuera de esta entrega.
+Este trabajo toma como caso de estudio un robot real: el manipulador de tres grados de libertad con eslabones de rigidez variable de Ramzy et al. (2024). Los autores construyeron el banco de pruebas, publicaron sus parámetros de Denavit--Hartenberg y sus dimensiones, y midieron con cámara la posición de la punta en 26 posturas. Esa medición permite contrastar la simulación con datos experimentales y no solo con las ecuaciones.
+
+El trabajo busca responder tres preguntas:
+\begin{enumerate}
+\item ¿La cadena de Denavit--Hartenberg y las dimensiones publicadas reproducen las posiciones que el propio artículo reporta?
+\item ¿En qué posturas el robot es singular, y qué consecuencias tiene eso para el control?
+\item ¿Qué leyes de control cinemático permiten llevar la punta a un punto y seguir una trayectoria con este robot?
+\end{enumerate}
+
+Para responderlas se simulan en MATLAB la cinemática directa, la cinemática inversa, la cinemática diferencial, las singularidades, el espacio de trabajo y el control cinemático, en el espacio articular y en el cartesiano. La dinámica del artículo, con resortes y amortiguadores, queda fuera del alcance de esta entrega.
 
 \section{Desarrollo}
 
-\subsection{Qué robot, y por qué no es el de la práctica}
+\subsection{Modelo del robot}
 
-Los live scripts de las clases 2, 3, 4 y 6 modelan un RRP. Las tres filas de Denavit--Hartenberg tienen twist nulo, las longitudes que aparecen son \(L_1=75\)~mm y \(L_2=100\)~mm, y la tercera variable es el desplazamiento \(d_3\). Eso es el SCARA del G1.
-
-El robot de este trabajo es el de la Figura~1 y la Tabla~1 de Ramzy et al. La primera fila tiene \(\alpha_1=90^\circ\), \(a_1=0\) y \(d_1=l_1\). Las dos siguientes tienen \(\alpha=0\), \(d=0\) y \(a\) igual al largo del eslabón. En la Tabla~2 se leen
+El artículo modela un antropomórfico de tres rotativas. Para la cinemática de posición, los autores tratan los eslabones flexibles como rígidos y usan la convención de Denavit--Hartenberg (Denavit y Hartenberg, 1955). El Cuadro~\ref{tab:dh} reúne sus parámetros con las longitudes de la Tabla~2 del artículo:
 \begin{equation}
 l_1=0{,}04~\mathrm{m},\qquad l_2=0{,}29~\mathrm{m},\qquad l_3=0{,}240~\mathrm{m}.
 \end{equation}
-La misma tabla trae masas, centros de masa y momentos principales de inercia, calculados en SOLIDWORKS 2020 sobre el banco. El texto dice que los productos de inercia se toman como cero. Esos datos no entran en el parcial: aquí no hay dinámica. También imprime \(k_{1f}=k_{2f}=k_{3f}=1{,}66\) y \(c_{1f}=c_{2f}=c_{3f}=1{,}3\), sin unidad al lado. Pertenecen al modelo flexible.
+El eje \(z_0\) es vertical y apunta hacia arriba. No hay desplazamiento lateral entre los eslabones (\(d_2=d_3=0\)).
 
-En la Figura~1, \(z_0\) sale vertical hacia arriba y, en la posición de las ecuaciones, \(p_z\) suma \(l_1\). El sentido de \(q_1\) es el de \(\operatorname{atan2}(p_y,p_x)\) cuando el brazo apunta hacia el punto. No hay offset lateral: \(d_2=d_3=0\).
+\begin{table}[ht]
+\centering
+\caption{Parámetros de Denavit--Hartenberg (Ramzy et al., 2024, Tabla~1).}
+\label{tab:dh}
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+Articulación & \(\theta_i\) & \(d_i\) & \(a_i\) & \(\alpha_i\) \\
+\midrule
+1 & \(q_1\) & \(l_1=0{,}04\)~m & 0 & \(90^\circ\) \\
+2 & \(q_2\) & 0 & \(l_2=0{,}29\)~m & 0 \\
+3 & \(q_3\) & 0 & \(l_3=0{,}240\)~m & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La misma tabla del artículo trae masas, centros de masa y momentos de inercia, obtenidos en SOLIDWORKS. Esos datos sirven para el modelo dinámico y no intervienen en esta simulación cinemática.
+
+El artículo no publica los límites articulares. Para el espacio de trabajo y para verificar las soluciones de la inversa se adoptaron
+\begin{equation}
+q_1\in[-180^\circ,180^\circ],\qquad q_2\in[-30^\circ,90^\circ],\qquad q_3\in[-120^\circ,120^\circ].
+\end{equation}
+Se eligieron porque con ellos el corte \(x=0\) del espacio de trabajo reproduce la forma de herradura de la Figura~5 del artículo. Son un supuesto de este trabajo, no un dato del banco.
 
 \subsection{Cinemática directa}
 
-Se usa la función \DHL{} de la clase 2: rotación en \(z\), traslación \((a,0,d)\) y rotación en \(x\). La cadena es
+Cada fila del Cuadro~\ref{tab:dh} da una matriz homogénea
 \begin{equation}
-{}^{0}T_{3}
-= \DHL(q_1,l_1,0,\pi/2)\;
-  \DHL(q_2,0,l_2,0)\;
-  \DHL(q_3,0,l_3,0).
+\DHL(\theta,d,a,\alpha)=R_z(\theta)\,T(a,0,d)\,R_x(\alpha),
 \end{equation}
-Con \(\alpha_1=\pi/2\), la tercera fila de la rotación de \({}^{0}T_{1}\) es \([0,\,1,\,0]\) y la traslación en \(z\) es \(l_1\). La matriz (2) del artículo imprime esa fila en ceros. No se copia: la Tabla~1 y las ecuaciones de posición piden el \(1\) de \(\sin(\pi/2)\).
-
-La posición de la punta es la cuarta columna. Coincide con las ecuaciones (6)--(8) del artículo. En (8) el PDF cierra un paréntesis de más; la expresión que se usa es
+y la cadena completa es \({}^{0}T_{3}={}^{0}T_{1}\,{}^{1}T_{2}\,{}^{2}T_{3}\) (Craig, 2006; Barrientos et al., 2007). La posición de la punta es la cuarta columna:
 \begin{equation}
 \begin{aligned}
 p_x &= \cos q_1\,(l_2\cos q_2+l_3\cos(q_2+q_3)),\\
 p_y &= \sin q_1\,(l_2\cos q_2+l_3\cos(q_2+q_3)),\\
 p_z &= l_1+l_2\sin q_2+l_3\sin(q_2+q_3).
 \end{aligned}
+\label{eq:directa}
 \end{equation}
+Estas expresiones coinciden con las ecuaciones (6)--(8) del artículo. Para \(q=(0{,}4;\,0{,}7;\,-0{,}8)\)~rad, el producto de matrices y las ecuaciones~\eqref{eq:directa} difieren en cero, dentro de la precisión doble.
 
-Para \(q=(0{,}4;\,0{,}7;\,-0{,}8)\)~rad, la diferencia entre el producto de matrices y esas tres ecuaciones quedó en cero dentro de la precisión doble. La columna teórica de la Tabla~3 del artículo queda unos milímetros más afuera que este cálculo con los largos de la Tabla~2. La simulación no persigue esa columna: sigue (6)--(8) y la Tabla~2, que coinciden entre sí. El signo de \(z\) es el de (8): \(l_1\) se suma. En la clase 2 el docente escribe, para el SCARA, \(L_1=75\)~mm, la segunda distancia \(100\)~mm y \(z=-d_3\), porque la prismática solo acepta negativos. Ese menos es de ese brazo.
+Al reconstruir la cadena se detectaron erratas tipográficas en las matrices impresas del artículo. En la matriz (2), la tercera fila de la rotación aparece en ceros y debe ser \([0,\,1,\,0]\), porque \(\sin(90^\circ)=1\). En la matriz (3), el elemento \((3,3)\) aparece como 0 y debe ser 1. En la matriz (5), la última fila aparece como \([0,0,0,0]\) y debe ser \([0,0,0,1]\). Las ecuaciones de posición (6)--(8) sí son correctas, y son las que se usan.
+
+\subsection{Espacio de trabajo}
+
+El espacio de trabajo se obtuvo barriendo las tres articulaciones dentro de sus límites, con 25 valores por articulación, y pasando cada postura por la cinemática directa. El alcance máximo es \(0{,}57\)~m, igual a \(l_1+l_2+l_3\). Con los límites adoptados, \(x\) e \(y\) varían entre \(-0{,}53\) y \(0{,}53\)~m, y \(z\) entre \(-0{,}35\) y \(0{,}57\)~m. La figura~\ref{fig:ws} del anexo muestra la nube tridimensional y el corte \(x=0\), que pueden compararse con las Figuras~4 y~5 del artículo.
 
 \subsection{Cinemática inversa}
 
-El método es el geométrico de la clase 3. El coseno no distingue el signo del codo; el seno, sí. En la diapositiva del curso, con la trama arriba y sin columna, \(\theta_1=\operatorname{atan2}(p_y,p_x)\) y el codo se resuelve en el plano \(R\)--\(z\). Si la trama está abajo, la altura que usa es \(p_z-L_1\). Este paper tiene la trama arriba y además una columna \(l_1\), así que la altura del triángulo es \(p_z-l_1\) y el radio es \(R=\sqrt{p_x^2+p_y^2}\).
-
-Con la cintura que apunta al punto, \(q_1=\operatorname{atan2}(p_y,p_x)\) y \(A=R\). La otra cintura es \(q_1+\pi\), y entonces \(A=-R\). Para cada una,
+Se usó el método geométrico (Barrientos et al., 2007; Reyes Vásquez, 2026). La cintura apunta al punto o al lado opuesto:
 \begin{equation}
-\cos q_3=\frac{A^2+(p_z-l_1)^2-l_2^2-l_3^2}{2 l_2 l_3},
+q_1=\operatorname{atan2}(p_y,p_x)\quad\text{o}\quad q_1=\operatorname{atan2}(p_y,p_x)+\pi .
 \end{equation}
-y \(\sin q_3\) lleva el signo elegido. Si \(R\) es nulo, la punta está en el eje de \(q_1\) y esa articulación no queda determinada. Si \(|\cos q_3|>1\), el punto está fuera de alcance.
+Con \(A=p_x\cos q_1+p_y\sin q_1\) (que vale \(\pm\sqrt{p_x^2+p_y^2}\)), el problema se reduce a un brazo de dos eslabones en el plano vertical, con altura \(p_z-l_1\):
+\begin{align}
+\cos q_3&=\frac{A^2+(p_z-l_1)^2-l_2^2-l_3^2}{2 l_2 l_3}, \qquad
+\sin q_3=\pm\sqrt{1-\cos^2 q_3},\\
+q_2&=\operatorname{atan2}(p_z-l_1,\,A)-\operatorname{atan2}(l_3\sin q_3,\;l_2+l_3\cos q_3).
+\end{align}
+Las dos cinturas y los dos codos dan hasta cuatro soluciones. Si \(|\cos q_3|>1\), el punto está fuera de alcance. Si \(p_x=p_y=0\), la punta está sobre el eje de \(q_1\) y esa articulación queda indeterminada.
 
-Las ecuaciones (9)--(12) del artículo se presentan como la inversa de un antropomórfico rígido. En el punto de la prueba, \(q=(0{,}4;\,0{,}7;\,-0{,}8)\), el argumento del \(\cos^{-1}\) de (11) vale \(1{,}785\), fuera de \([-1,1]\). Esa fórmula no devuelve un ángulo, y no se copia. La inversa de este trabajo se dedujo de (6)--(8) y, con el signo de \(\sin q_3\) de la postura de partida, devolvió el mismo \(q\). El error al volver a entrar a la directa quedó en el orden de \(10^{-16}\)~m.
+El Cuadro~\ref{tab:ik} muestra las cuatro soluciones para la punta de \(q=(0{,}4;\,0{,}7;\,-0{,}8)\)~rad. Las cuatro reproducen el punto con un error del orden de \(10^{-16}\)~m. Solo dos respetan los límites articulares, y una de ellas es la postura de partida.
 
-\subsection{Cinemática diferencial y singularidades}
+\begin{table}[ht]
+\centering
+\caption{Soluciones de la cinemática inversa para la punta de \(q=(0{,}4;\,0{,}7;\,-0{,}8)\)~rad.}
+\label{tab:ik}
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+Solución & \(q_1\) (rad) & \(q_2\) (rad) & \(q_3\) (rad) & Límites \\
+\midrule
+Cintura +, codo + & \(0{,}4000\) & \(-0{,}0203\) & \(0{,}8000\) & dentro \\
+Cintura +, codo \(-\) & \(0{,}4000\) & \(0{,}7000\) & \(-0{,}8000\) & dentro \\
+Cintura \(-\), codo + & \(-2{,}7416\) & \(2{,}4416\) & \(0{,}8000\) & fuera \\
+Cintura \(-\), codo \(-\) & \(-2{,}7416\) & \(-3{,}1213\) & \(-0{,}8000\) & fuera \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-El jacobiano es el de la posición, \(3\times 3\): las derivadas de \(p_x\), \(p_y\) y \(p_z\) respecto de \(q_1\), \(q_2\) y \(q_3\). No es el del RRP de la práctica.
+El artículo presenta otra inversa, sus ecuaciones (9)--(12), tomada de trabajos previos. Esa formulación no es consistente con su propia directa. En la ecuación (11), el numerador aparece como \(x^2+y^2+z^2-l_2^2\,l_3^2\), con un producto donde corresponde una resta. En el punto de prueba, el argumento del \(\cos^{-1}\) vale \(1{,}785\) y la función no está definida. Aun corrigiendo esa errata, la ecuación no resta \(l_1\) a la altura \(z\), y el ángulo que asigna a \(\theta_2\) es el del codo, es decir, \(\theta_3\). Por eso se usó la inversa deducida directamente de~\eqref{eq:directa}.
+
+\subsection{Cinemática diferencial}
+
+El jacobiano de posición relaciona las velocidades articulares con la velocidad lineal de la punta, \(\dot p=J(q)\,\dot q\) (Siciliano et al., 2009). Derivando~\eqref{eq:directa}:
 \begin{equation}
 J=\begin{bmatrix}
 -\sin q_1\, A & -\cos q_1\, B & -\cos q_1\, l_3\sin(q_2+q_3)\\
@@ -112,107 +180,123 @@ J=\begin{bmatrix}
 0 & A & l_3\cos(q_2+q_3)
 \end{bmatrix},
 \end{equation}
-con \(A=l_2\cos q_2+l_3\cos(q_2+q_3)\) y \(B=l_2\sin q_2+l_3\sin(q_2+q_3)\). De esa matriz sale
+con \(A=l_2\cos q_2+l_3\cos(q_2+q_3)\) y \(B=l_2\sin q_2+l_3\sin(q_2+q_3)\).
+
+Se hicieron dos comprobaciones:
+\begin{itemize}
+\item El jacobiano analítico se comparó con uno numérico por diferencias centrales en \(q=(0{,}4;\,0{,}7;\,-0{,}8)\). La máxima diferencia fue del orden de \(10^{-11}\).
+\item Sobre una trayectoria articular quíntica de 3~s, la velocidad \(J(q)\,\dot q\) se comparó con la derivada numérica de la posición de la punta. La máxima diferencia fue del orden de \(10^{-5}\)~m/s, para velocidades de hasta \(0{,}25\)~m/s. Esa diferencia es el error de truncamiento de la derivada numérica (figura~\ref{fig:dif}).
+\end{itemize}
+
+\subsection{Singularidades}
+
+Una configuración es singular cuando el determinante del jacobiano se anula: el robot pierde un grado de movilidad y algunas velocidades de la punta exigen velocidades articulares infinitas (Barrientos et al., 2007; Siciliano et al., 2009). Para este robot,
 \begin{equation}
-\det J=-A\, l_2\, l_3\sin q_3.
+\det J=-A\, l_2\, l_3\sin q_3 .
 \end{equation}
-Se contrastó con el determinante numérico de \(J\). En \(q=(0{,}4;\,0{,}7;\,-0{,}8)\) vale \(0{,}0230\). En el codo estirado (\(q_3=0\)) y en el codo plegado (\(q_3=\pi\)) cae a cero numérico, porque \(\sin q_3=0\).
+El resultado coincide con el determinante numérico (\(0{,}0230\) en la postura de prueba). Se anula en dos casos:
+\begin{itemize}
+\item \(\sin q_3=0\): el codo está completamente estirado (\(q_3=0\), en la frontera exterior del espacio de trabajo) o completamente plegado (\(q_3=\pi\)).
+\item \(A=0\): la punta queda sobre el eje de la primera articulación. Con \(l_2=0{,}29\)~m y \(l_3=0{,}240\)~m, el brazo alcanza ese eje sin tener el codo estirado ni plegado. Por ejemplo, con \(q_2=2\pi/3\) y el \(q_3\) que anula \(A\), el determinante es cero aunque \(\sin q_3\neq 0\).
+\end{itemize}
 
-\(A=0\) es la otra raíz. Ahí \(p_x=p_y=0\): la punta está en el eje de la primera articulación. Con \(l_2=0{,}29\)~m y \(l_3=0{,}240\)~m el brazo sí alcanza ese eje sin tener el codo estirado ni plegado. El script lo arma con \(q_2=2\pi/3\) y el \(q_3\) que anula \(A\). En esa postura \(\sin q_3\) no es cero y \(\det J\) cae a cero numérico.
+El determinante no depende de \(q_1\). Por eso puede representarse como un mapa sobre el plano \((q_2,q_3)\), cuyas curvas de nivel cero son las singularidades (figura~\ref{fig:sing}). Sobre una trayectoria, \(|\det J|\) mide la manipulabilidad del robot (Yoshikawa, 1985). En la simulación, los dos controladores se detienen si \(|\det J|<10^{-4}\).
 
-En la clase 4, para el RRP, el docente lee \(\det J=-L_1 L_2\sin\theta_2=0\) cuando \(\theta_2=0\pm n\pi\). Con \(\theta_2=0\) los eslabones quedan alineados en el borde exterior del área de trabajo. Las velocidades articulares que se van al infinito las reserva para las singularidades de adentro, que en esa clase no calcula. La definición que lee en Barrientos es la que se usa aquí: hay configuración singular cuando el determinante del jacobiano es cero \cite{barrientos}. En este robot, \(q_3=0\) es el borde estirado. \(A=0\) con \(\sin q_3\neq 0\) es una singularidad con la punta sobre el eje de \(q_1\). El script corta el control de posición y el de seguimiento si \(|\det J|<10^{-4}\).
+\subsection{Control cinemático}
 
-\subsection{Trayectoria articular}
-
-La clase 6 deja el control cinemático, en una de sus opciones, como un punto A a un punto B en el espacio articular. Entre dos puntos alcanzables se resuelve la inversa y se une con el polinomio de esa clase, el mismo \(t_f=3\)~s para las tres articulaciones, reposo a reposo. La cúbica anula la velocidad en los extremos:
+\paragraph{Espacio articular (punto a punto).} Entre dos posturas obtenidas con la inversa se interpola cada articulación con un polinomio que parte y llega en reposo, con \(t_f=3\)~s (Reyes Vásquez, 2026; Craig, 2006). La cúbica anula la velocidad en los extremos:
 \begin{equation}
-a_0=q_i,\quad
-a_1=0,\quad
-a_2=\frac{3(q_f-q_i)}{t_f^2},\quad
-a_3=-\frac{2(q_f-q_i)}{t_f^3}.
+a_0=q_i,\quad a_1=0,\quad a_2=\frac{3(q_f-q_i)}{t_f^2},\quad a_3=-\frac{2(q_f-q_i)}{t_f^3}.
 \end{equation}
-La quíntica anula también la aceleración:
+La quíntica anula además la aceleración:
 \begin{equation}
-a_3=\frac{10(q_f-q_i)}{t_f^3},\quad
-a_4=-\frac{15(q_f-q_i)}{t_f^4},\quad
-a_5=\frac{6(q_f-q_i)}{t_f^5}.
+a_3=\frac{10(q_f-q_i)}{t_f^3},\quad a_4=-\frac{15(q_f-q_i)}{t_f^4},\quad a_5=\frac{6(q_f-q_i)}{t_f^5}.
 \end{equation}
-La punta se obtiene pasando cada \(q(t)\) por la directa. En el script, los extremos son las posturas \((0{,}3;\,0{,}6;\,-0{,}5)\) y \((0{,}7;\,1{,}0;\,-0{,}9)\)~rad, las dos con el mismo signo de codo.
+La trayectoria de la punta se obtiene pasando cada \(q(t)\) por la directa (figura~\ref{fig:cub}).
 
-\subsection{Control cinemático en el espacio cartesiano}
+\paragraph{Espacio cartesiano.} Se usan leyes basadas en la pseudoinversa del jacobiano \(J^{+}\), integradas con Euler, \(q_{k+1}=q_k+t_s\,\dot q_k\), con \(t_s=0{,}05\)~s (Kelly y Santibáñez, 2003; Reyes Vásquez, 2026):
+\begin{align}
+\text{Posición:}\quad &\dot q = J^{+}\,K\tanh(e),\qquad K=8I,\\
+\text{Seguimiento:}\quad &\dot q = J^{+}\,(\dot h_d+K e),\qquad K=I,
+\end{align}
+con \(e=h_d-h(q)\). La saturación con \(\tanh\) limita la velocidad cuando el error es grande.
 
-La otra opción que el docente deja en la clase 6 es el control en el espacio cartesiano. La ley es la de la clase 7, pasada de cuatro rotativas a tres. La integración es de Euler, \(q(k+1)=q(k)+t_s\dot q\).
+En el control de posición, la punta parte de \(q=(0{,}15;\,0{,}55;\,-0{,}4)\)~rad y debe llegar al punto \((0{,}406;\,0{,}172;\,0{,}272)\)~m. El error final quedó en el orden de \(10^{-16}\)~m. En el seguimiento, la referencia es una curva tridimensional alrededor de la punta de \(q=(0{,}5;\,0{,}9;\,-0{,}8)\)~rad, con amplitudes de \(0{,}03\), \(0{,}03\) y \(0{,}02\)~m. El error máximo fue de \(1{,}4\times 10^{-4}\)~m y el error final de \(6{,}1\times 10^{-5}\)~m (figuras~\ref{fig:err}--\ref{fig:seg}).
 
-Posición, referencia fija, \(K=8I\):
-\begin{equation}
-\dot q = J^{+}\, K \tanh(e), \qquad e = h_d - h(q).
-\end{equation}
-Seguimiento, \(K=I\):
-\begin{equation}
-\dot q = J^{+}(\dot h_d + K e).
-\end{equation}
-\(J^{+}\) es la pseudoinversa, como en esos archivos. Lejos de la singularidad coincide con la inversa. El \(\tanh\) está en el archivo de posición de la clase. La proporcional sin saturación está comentada. Aquí se dejó el \(\tanh\) en la posición y la forma lineal en el seguimiento.
+\subsection{Validación con los datos experimentales del artículo}
 
-El objetivo de posición es la punta de \(q=(0{,}4;\,0{,}8;\,-0{,}7)\)~rad, el punto \((0{,}406;\,0{,}172;\,0{,}272)\)~m. Se parte de \(q=(0{,}15;\,0{,}55;\,-0{,}4)\)~rad. El error final quedó en el orden de \(10^{-16}\)~m. El seguimiento gira alrededor de la punta de \(q=(0{,}5;\,0{,}9;\,-0{,}8)\)~rad, con amplitudes \(0{,}03\), \(0{,}03\) y \(0{,}02\)~m. Parte de la inversa del primer punto de esa curva. El error máximo quedó en \(1{,}4\times 10^{-4}\)~m y el final en \(6{,}0\times 10^{-5}\)~m. Esas curvas las dibuja \texttt{simular\_parcial.m}.
+La Tabla~3 del artículo reporta 26 posturas, la posición de la punta medida con cámara y la posición que los autores calcularon con su modelo. Ese conjunto se usó para validar la cinemática directa de este trabajo. Antes se corrigieron dos erratas de la tabla:
+\begin{itemize}
+\item En las filas 19 a 26 se imprime \(q_3=6{,}6^\circ\). Con ese valor, la fila 26 da \(z=84{,}9\)~mm; con \(q_3=-6{,}6^\circ\) da \(29{,}8\)~mm, y el artículo reporta \(29{,}92\)~mm. Se usó \(-6{,}6^\circ\). En \(x\) e \(y\) el signo no influye.
+\item En la fila 26, la \(x\) teórica aparece como 0. Con \(q_1=88{,}69^\circ\) vale unos 12~mm, por lo que esa celda se excluyó.
+\end{itemize}
 
-El artículo simula la dinámica en MATLAB/Simulink, con un bloque que pasa de ángulo a par porque en el banco no controlan el par del motor. Esa no es la ley de este parcial.
+\begin{table}[ht]
+\centering
+\caption{Error absoluto medio por eje contra la Tabla~3 del artículo (mm).}
+\label{tab:val}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Comparación & \(|e_x|\) & \(|e_y|\) & \(|e_z|\) & máx. \\
+\midrule
+Modelo (Tabla~2) vs.\ experimental & 1{,}00 & 1{,}73 & 3{,}49 & 9{,}93 \\
+Modelo del artículo vs.\ experimental & 2{,}91 & 2{,}29 & 2{,}28 & 6{,}98 \\
+Modelo (Tabla~2) vs.\ teórico del artículo & 3{,}73 & 3{,}33 & 3{,}06 & 5{,}97 \\
+Modelo ajustado vs.\ teórico del artículo & 0{,}34 & 0{,}22 & 0{,}13 & 0{,}56 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El Cuadro~\ref{tab:val} resume los resultados. Con las longitudes de la Tabla~2, el modelo reproduce la medición con errores medios de 1 a 3,5~mm, del mismo orden que los que el artículo reporta para su propio modelo (2,90; 2,29 y 2,40~mm).
+
+En cambio, la columna teórica del artículo no se obtiene con \(l_2=0{,}29\)~m. La posición es lineal en las longitudes, así que se ajustaron \(l_1\), \(l_2\) y \(l_3\) por mínimos cuadrados a esa columna. El resultado fue \(l_1=0{,}0398\)~m, \(l_2=0{,}2954\)~m y \(l_3=0{,}2400\)~m. Con esos valores, el error contra la columna teórica baja a menos de 0,6~mm. Todo indica que los autores calcularon sus valores teóricos con \(l_2\approx 0{,}295\)~m, una longitud distinta de la que publican.
 
 \section{Opinión personal}
 
-Esta sección la escribe el autor, con sus palabras. El enunciado lo pide así. Tres preguntas para no dejarla en blanco, no para copiarlas en la entrega:
-
-\begin{itemize}
-\item El paper modela eslabones que flexionan. Para el parcial se usó la cadena rígida con la que él mismo calcula la posición. ¿Esa decisión se sostiene en la exposición?
-\item Las ecuaciones (9)--(12) no recuperan la directa. ¿Se explica en la exposición por qué la inversa es la geométrica de la clase 3?
-\item El control cartesiano lleva el \(\tanh\) de la clase 7, y el punto a punto articular lleva el polinomio de la clase 6. ¿Cuál de los dos se va a defender, o se muestran los dos?
-\end{itemize}
+\pendiente{Esta sección debe redactarla el autor con sus propias palabras, como exige el enunciado.}
 
 \section{Conclusiones}
 
-La cadena de la Tabla~1, con los metros de la Tabla~2 y la función \DHL{} de clase, reproduce las ecuaciones (6)--(8). La inversa geométrica de dos signos recupera la postura cuando se elige el codo de partida. El jacobiano de la posición se anula con el codo estirado, con el codo plegado y cuando la punta cae en el eje de \(q_1\). El polinomio articular de la clase 6 y el control con pseudoinversa de la clase 7 corren en este robot: cambian la \(J\) y la directa, no la forma de la ley.
-
-Los largos son los del banco. La simulación cinemática no usa las masas ni los resortes de la Tabla~2.
+\begin{itemize}
+\item La cadena de Denavit--Hartenberg del artículo, con las longitudes de su Tabla~2, reproduce las ecuaciones de posición (6)--(8). Contra la medición experimental de 26 posturas, da errores medios de 1 a 3,5~mm, comparables a los que reporta el propio artículo. El modelo cinemático publicado es, por lo tanto, válido.
+\item La columna teórica de la Tabla~3 del artículo se reproduce con \(l_2\approx 0{,}295\)~m y no con los 0,29~m publicados. Además, la tabla y varias ecuaciones contienen erratas: el signo de \(q_3\) en las filas 19 a 26, las matrices (2), (3) y (5), y la inversa (9)--(12). Verificar el artículo con un modelo propio permitió detectarlas.
+\item La inversa geométrica entrega hasta cuatro soluciones exactas. Los límites articulares descartan algunas, y en la práctica la elección entre las restantes depende de la tarea.
+\item El robot es singular con el codo estirado o plegado (\(\sin q_3=0\)) y con la punta sobre el eje de la cintura (\(A=0\)). Las leyes basadas en la pseudoinversa funcionan bien lejos de esas posturas, pero deben detectarlas.
+\item Tanto el control punto a punto en el espacio articular como el control cartesiano de posición y de seguimiento llevan la punta al objetivo con errores menores a 0,2~mm en este robot.
+\end{itemize}
 
 \section{Recomendaciones}
 
 \begin{enumerate}
-\item Correr \texttt{simular\_parcial} en MATLAB Online y llevar las tres figuras a la exposición.
-\item Mostrar el codo estirado y la postura con la punta en el eje de \(q_1\). En la segunda, \(\sin q_3\) no es cero y \(\det J\) sí.
-\item No copiar la matriz (2) ni las ecuaciones (9)--(12) tal como están impresas. La directa que cierra es la de (6)--(8) con la Tabla~1.
-\item Citar el artículo. El enunciado anula el trabajo si el texto se pega de una fuente sin procesarlo y sin referencias. La opinión personal se escribe con palabras propias.
+\item Medir \(l_2\) directamente en el prototipo, o confirmarla con los autores, antes de usar el modelo para la dinámica. Una diferencia de 5~mm basta para explicar los errores sistemáticos entre la Tabla~2 y la Tabla~3.
+\item Incluir en los artículos los límites articulares del banco. Sin ellos, el espacio de trabajo solo puede estimarse a partir de figuras.
+\item Reemplazar la pseudoinversa por mínimos cuadrados amortiguados cerca de las singularidades \(A=0\) y \(\sin q_3=0\), para mantener acotadas las velocidades articulares en lugar de detener el control.
+\item Planificar las trayectorias lejos de la frontera exterior del espacio de trabajo y del eje de la cintura, usando el mapa de \(\det J\) como criterio.
+\item Para el trabajo final, extender el modelo a la dinámica con las masas, centros de masa e inercias de la Tabla~2 del artículo, y validarla con su experimento dinámico.
 \end{enumerate}
 
-\begin{thebibliography}{9}
+\section*{Referencias}
+\addcontentsline{toc}{section}{Referencias}
 
-\bibitem{ramzy2024}
-Ramzy, M.~R., Hammad, S. y Maged, S.~A. (2024).
-Kinematic and dynamic modeling of 3DOF variable stiffness links manipulator with experimental validation.
-\emph{Applied Sciences, 14}(12), 5285.
-\url{https://doi.org/10.3390/app14125285}
+\begin{list}{}{\leftmargin=1.5em\itemindent=-1.5em\itemsep=0.5em}
+\item Barrientos, A., Peñín, L. F., Balaguer, C. y Aracil, R. (2007). \emph{Fundamentos de robótica} (2.ª ed.). McGraw-Hill.
+\item Craig, J. J. (2006). \emph{Robótica} (3.ª ed.). Pearson Educación.
+\item Denavit, J. y Hartenberg, R. S. (1955). A kinematic notation for lower-pair mechanisms based on matrices. \emph{Journal of Applied Mechanics, 22}(2), 215--221.
+\item Kelly, R. y Santibáñez, V. (2003). \emph{Control de movimiento de robots manipuladores}. Pearson Prentice Hall.
+\item Ramzy, M. R., Hammad, S. y Maged, S. A. (2024). Kinematic and dynamic modeling of 3DOF variable stiffness links manipulator with experimental validation. \emph{Applied Sciences, 14}(12), 5285. \url{https://doi.org/10.3390/app14125285}
+\item Reyes Vásquez, W. D. (2026). \emph{Robótica y sistemas autónomos: material de clase} [Diapositivas y scripts de MATLAB]. Universidad Nacional de Ingeniería.
+\item Siciliano, B., Sciavicco, L., Villani, L. y Oriolo, G. (2009). \emph{Robotics: Modelling, planning and control}. Springer. \url{https://doi.org/10.1007/978-1-84628-642-1}
+\item Yoshikawa, T. (1985). Manipulability of robotic mechanisms. \emph{The International Journal of Robotics Research, 4}(2), 3--9. \url{https://doi.org/10.1177/027836498500400201}
+\end{list}
 
-\bibitem{reyes2026}
-Reyes Vásquez, W.~D. (2026).
-\emph{Trabajo parcial: Robot antropomórfico de 3GDL}.
-Robótica y sistemas autónomos, ciclo 2026-2.
-Material de clase.
+\appendix
+\section{Anexos: esquemas realizados}
 
-\bibitem{barrientos}
-Barrientos, A.
-\emph{Fundamentos de robótica}.
-Libro que el docente abre en la clase 4 para la definición de configuración singular.
-En la transcripción no dice edición ni año.
-
-\end{thebibliography}
-
-\section{Anexos}
-
-Los esquemas de la simulación los genera \texttt{matlab/simular\_parcial.m}: la cadena inicial y la final con el camino de la punta en el control de posición, la referencia y la punta en el seguimiento, y \(q(t)\) del polinomio cúbico junto con la punta al pasar por la directa.
-
-El esquema de la cadena, leído de la Tabla~1 y de la Figura~1 del artículo, es el de la figura~\ref{fig:cadena}. \(q_1\) gira alrededor de la vertical. \(q_2\) y \(q_3\) giran alrededor de ejes horizontales paralelos. El dibujo no está a escala: \(l_1\) es mucho más corto que \(l_2\) y \(l_3\).
+\subsection{Esquema de la cadena}
 
 \begin{figure}[ht]
 \centering
-\shorthandoff{>}
+\shorthandoff{<>}
 \begin{tikzpicture}[line cap=round,line join=round]
   \draw[->] (0,0) -- (0,3.1) node[above] {$z_0$};
   \draw[->] (0,0) -- (1.5,0) node[right] {$x_0$};
@@ -232,24 +316,67 @@ El esquema de la cadena, leído de la Tabla~1 y de la Figura~1 del artículo, es
   \fill (3.7,2.7) circle (1.6pt);
   \node[right] at (3.85,2.7) {punta};
 \end{tikzpicture}
-\shorthandon{>}
-\caption{Cadena del antropomórfico. Vista lateral. \(q_1\) no se ve porque su eje es \(z_0\).}
+\shorthandon{<>}
+\caption{Cadena del antropomórfico, vista lateral. \(q_1\) gira alrededor de \(z_0\); \(q_2\) y \(q_3\), alrededor de ejes horizontales paralelos. El dibujo no está a escala.}
 \label{fig:cadena}
 \end{figure}
 
-\begin{table}[ht]
+\subsection{Figuras de la simulación}
+
+Las figuras siguientes las genera el script \texttt{simular\_parcial.m}, que las guarda en la carpeta \texttt{matlab/figuras/}.
+
+\begin{figure}[htbp]
 \centering
-\caption{Parámetros de Denavit--Hartenberg de la Tabla~1 de Ramzy et al.\ (2024), con los metros de la Tabla~2.}
-\label{tab:dh}
-\begin{tabular}{@{}ccccc@{}}
-\toprule
-GDL & \(\alpha\) & \(a\) & ángulo & \(d\) \\
-\midrule
-1 & \(90^\circ\) & 0 & \(q_1\) & \(l_1=0{,}04\)~m \\
-2 & 0 & \(l_2=0{,}29\)~m & \(q_2\) & 0 \\
-3 & 0 & \(l_3=0{,}240\)~m & \(q_3\) & 0 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\figsim{01_cadena_en_la_postura_de_prueba}{Cinemática directa: base, articulaciones y punta en \(q=(0{,}4;\,0{,}7;\,-0{,}8)\)~rad.}
+\label{fig:cadsim}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\figsim{02_espacio_de_trabajo}{Espacio de trabajo 3D y corte \(x=0\), para comparar con las Figuras~4 y~5 de Ramzy et al. (2024).}
+\label{fig:ws}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\figsim{03_singularidades}{Mapa de \(\det J(q_2,q_3)\), con las singularidades en rojo, y manipulabilidad sobre la trayectoria quíntica.}
+\label{fig:sing}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\figsim{04_cinematica_diferencial}{Velocidad de la punta: \(J(q)\,\dot q\) en color y derivada numérica de la posición en negro discontinuo; las curvas se superponen.}
+\label{fig:dif}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\figsim{05_validacion_tabla_3}{Validación contra la Tabla~3 del artículo: modelo frente a medición, y error por postura.}
+\label{fig:val}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\figsim{06_error_de_control}{Norma del error en el control de posición y en el seguimiento.}
+\label{fig:err}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\figsim{07_control_de_posicion}{Control de posición: cadena inicial, cadena final y camino de la punta.}
+\label{fig:pos}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\figsim{08_seguimiento}{Seguimiento cartesiano: referencia y trayectoria de la punta.}
+\label{fig:seg}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\figsim{09_interpolador_cubico}{Punto a punto articular: \(q(t)\) del polinomio cúbico y trayectoria resultante de la punta.}
+\label{fig:cub}
+\end{figure}
 
 \end{document}
