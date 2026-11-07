@@ -1,0 +1,222 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usepackage[spanish,es-nodecimaldot]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{graphicx}
+
+\graphicspath{{../matlab/figuras/}{../informe/figuras/}}
+
+\definecolor{unirojo}{HTML}{8E1B1B}
+\definecolor{unioscuro}{HTML}{121212}
+\definecolor{unitinta}{HTML}{F6F1EE}
+\definecolor{unigris}{HTML}{5E5956}
+\definecolor{univerde}{HTML}{1F6B45}
+
+\usefonttheme{professionalfonts}
+\setbeamerfont{frametitle}{series=\bfseries,size=\large}
+\setbeamercolor{frametitle}{fg=unioscuro}
+\setbeamercolor{normal text}{fg=unioscuro,bg=white}
+\setbeamercolor{structure}{fg=unirojo}
+\setbeamercolor{block title}{fg=white,bg=unirojo}
+\setbeamercolor{block body}{fg=unioscuro,bg=unitinta}
+\setbeamercolor{block title alerted}{fg=white,bg=unigris}
+\setbeamercolor{block body alerted}{fg=unioscuro,bg=unitinta}
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=0.55cm,text margin right=0.55cm}
+
+\setbeamertemplate{frametitle}{%
+  \vspace{0.15em}%
+  \insertframetitle\par
+  \vspace{0.12em}%
+  {\color{unirojo}\rule{\textwidth}{1.15pt}}\par
+  \vspace{0.15em}%
+}
+
+\setbeamertemplate{footline}{%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=\paperwidth,ht=2.5ex,dp=1ex,leftskip=0.7em,rightskip=0.7em]{footline}%
+      \usebeamerfont{footline}\color{unigris}%
+      Trabajo parcial \hfill \insertframenumber\,/\,\inserttotalframenumber
+    \end{beamercolorbox}}%
+}
+
+\newcommand{\figura}[2]{%
+  \begin{center}
+    \includegraphics[width=\textwidth,height=0.66\textheight,keepaspectratio]{#1}
+  \end{center}
+  \vspace{-0.55em}
+  {\footnotesize\color{unigris} #2\par}%
+}
+
+\newcommand{\pedido}[2]{%
+  \begin{beamercolorbox}[wd=\linewidth,sep=0.55em,center]{block body}%
+    {\normalsize\bfseries\color{unirojo} #1}\\[0.25em]
+    {\small #2}%
+  \end{beamercolorbox}%
+}
+
+\begin{document}
+
+{
+\setbeamercolor{background canvas}{bg=unioscuro}
+\begin{frame}[plain]
+\color{white}
+\vspace{0.35cm}
+\begin{columns}[c]
+\begin{column}{0.24\textwidth}
+\centering
+\includegraphics[height=4.6cm]{escudo-uni.png}
+\end{column}
+\begin{column}{0.74\textwidth}
+{\color{white}%
+{\color{unirojo}\rule{3.2cm}{2.2pt}}\\[0.45em]
+{\large Universidad Nacional de Ingeniería}\\[0.15em]
+{\normalsize Maestría en Inteligencia Artificial}\\[0.9em]
+{\LARGE\bfseries Trabajo Parcial}\\[0.35em]
+{\Large Robot antropomórfico de 3 grados de libertad}\\[0.25em]
+{\large Cinemática, singularidades y control cinemático}\\[0.7em]
+{\small\color{white!65} Ramzy, Hammad y Maged (2024), comprobado en MATLAB}}
+\end{column}
+\end{columns}
+
+\vspace{0.85cm}
+{\footnotesize\color{white}
+\begin{tabular}{@{}ll@{}}
+Koc Góngora, Luis Enrique & Mancilla Antay, Alex Felipe \\
+Meléndez García, Herbert Antonio & Paitan Cano, Dennis Jack \\
+Gutierrez Vilca, Adrian Jesus & Dávila Anaya, Nicolás Sebastián \\
+\end{tabular}}\\[0.7em]
+{\footnotesize\color{white!75} Robótica y sistemas autónomos}\\[0.25em]
+{\footnotesize\color{white!75} Ing.\ Wilson Dennis Reyes Vásquez \quad 2026-2}
+\end{frame}
+}
+
+\begin{frame}{Lo que se pidió, en una pasada}
+\begin{columns}[T]
+\begin{column}{0.32\textwidth}
+\pedido{Directa}{Dónde está la punta.}
+\vspace{0.45em}
+\pedido{Inversa}{Qué ángulos la llevan ahí.}
+\end{column}
+\begin{column}{0.32\textwidth}
+\pedido{Diferencial}{Cómo se mueve.}
+\vspace{0.45em}
+\pedido{Singularidades}{Dónde se traba.}
+\end{column}
+\begin{column}{0.32\textwidth}
+\pedido{Control}{Articular y cartesiano.}
+\vspace{0.45em}
+\pedido{Y además}{Volumen y medición.}
+\end{column}
+\end{columns}
+\vspace{0.7em}
+{\small El brazo es el banco de tres rotativas de Ramzy et al.\ (2024). Los largos son los de su Tabla~2: \(l_1=0{,}04\)~m, \(l_2=0{,}29\)~m, \(l_3=0{,}240\)~m. La dinámica queda para el paso siguiente.}
+\end{frame}
+
+\begin{frame}{La cadena del banco, en la postura de prueba}
+\figura{01_cadena_en_la_postura_de_prueba.png}{%
+\(q=(0{,}4;\ 0{,}7;\ -0{,}8)\)~rad. El producto de Denavit--Hartenberg y las ecuaciones (6)--(8) difieren en cero.}
+\end{frame}
+
+\begin{frame}{La misma punta, cuatro posturas}
+\vspace{0.2em}
+\begin{columns}[T]
+\begin{column}{0.49\textwidth}
+\begin{block}{Cintura +, codo \(-\). La de partida}
+\(q=(0{,}400;\ 0{,}700;\ -0{,}800)\)\\
+dentro de los límites
+\end{block}
+\vspace{0.35em}
+\begin{block}{Cintura +, codo +}
+\(q=(0{,}400;\ -0{,}020;\ 0{,}800)\)\\
+dentro de los límites
+\end{block}
+\end{column}
+\begin{column}{0.49\textwidth}
+\begin{alertblock}{Cintura \(-\), codo +}
+\(q=(-2{,}742;\ 2{,}442;\ 0{,}800)\)\\
+fuera de los límites
+\end{alertblock}
+\vspace{0.35em}
+\begin{alertblock}{Cintura \(-\), codo \(-\)}
+\(q=(-2{,}742;\ -3{,}121;\ -0{,}800)\)\\
+fuera de los límites
+\end{alertblock}
+\end{column}
+\end{columns}
+\vspace{0.55em}
+{\small Las cuatro regresan al mismo punto, con error del orden de \(10^{-16}\)~m. La inversa impresa en (9)--(12) pide un \(\cos^{-1}(1{,}785)\) y no se usa.}
+\end{frame}
+
+\begin{frame}{El volumen que el brazo alcanza}
+\figura{02_espacio_de_trabajo.png}{%
+Alcance máximo \(0{,}57\)~m \(= l_1+l_2+l_3\). El corte \(x=0\) tiene la herradura de la Figura~5. Los límites articulares no están en el artículo: se adoptaron para ese corte.}
+\end{frame}
+
+\begin{frame}{El jacobiano predice la velocidad de la punta}
+\figura{04_cinematica_diferencial.png}{%
+Color: \(J(q)\,\dot q\). Negro: derivada numérica de la posición. Se superponen. La diferencia máxima es del orden de \(10^{-5}\)~m/s.}
+\end{frame}
+
+\begin{frame}{Dónde el robot pierde un grado de libertad}
+\figura{03_singularidades.png}{%
+\(\det J=-A\,l_2\,l_3\sin q_3\). En rojo, codo estirado y punta sobre el eje de \(q_1\). A la derecha, \(|\det J|\) en la trayectoria quíntica: la manipulabilidad no se anula.}
+\end{frame}
+
+\begin{frame}{Punto a punto: sale y llega en reposo}
+\figura{09_interpolador_cubico.png}{%
+Polinomio cúbico de la clase 6, \(t_f=3\)~s, las tres articulaciones a la vez. Abajo, la punta al pasar por la directa.}
+\end{frame}
+
+\begin{frame}{El control cartesiano lleva la punta al blanco}
+\figura{07_control_de_posicion.png}{%
+De \(q=(0{,}15;\ 0{,}55;\ -0{,}4)\) al punto \((0{,}406;\ 0{,}172;\ 0{,}272)\)~m. Ley de la clase 7: \(\dot q=J^{+}K\tanh(e)\), \(K=8I\). Error final del orden de \(10^{-16}\)~m.}
+\end{frame}
+
+\begin{frame}{Y la punta sigue la curva}
+\figura{08_seguimiento.png}{%
+Referencia y punta, casi la misma línea. \(\dot q=J^{+}(\dot h_d+Ke)\), \(K=I\). Error máximo \(1{,}4\times 10^{-4}\)~m.}
+\end{frame}
+
+\begin{frame}{El error de posición desaparece}
+\figura{06_error_de_control.png}{%
+Arriba, el control de posición baja hasta el orden de \(10^{-16}\)~m. Abajo, el seguimiento se mantiene bajo \(1{,}4\times 10^{-4}\)~m durante 20~s.}
+\end{frame}
+
+\begin{frame}{El modelo cae sobre la medición del artículo}
+\figura{05_validacion_tabla_3.png}{%
+26 posturas de la Tabla~3. Error medio contra la cámara: 1,00~mm en \(x\), 1,73~mm en \(y\), 3,49~mm en \(z\). El artículo reporta 2,90, 2,29 y 2,40~mm para su propio modelo. La simulación conserva \(l_2=0{,}29\)~m.}
+\end{frame}
+
+\begin{frame}{Tres resultados para llevar}
+\vspace{0.4em}
+\begin{columns}[c]
+\begin{column}{0.33\textwidth}
+\begin{beamercolorbox}[wd=\linewidth,sep=0.7em,center]{block body}
+{\LARGE\bfseries\color{unirojo} 0}\\[0.3em]
+{\small Directa contra\\las ecuaciones (6)--(8)}
+\end{beamercolorbox}
+\end{column}
+\begin{column}{0.33\textwidth}
+\begin{beamercolorbox}[wd=\linewidth,sep=0.7em,center]{block body}
+{\LARGE\bfseries\color{unirojo} 1--3,5}\\[0.3em]
+{\small mm de error medio\\contra la cámara}
+\end{beamercolorbox}
+\end{column}
+\begin{column}{0.33\textwidth}
+\begin{beamercolorbox}[wd=\linewidth,sep=0.7em,center]{block body}
+{\LARGE\bfseries\color{unirojo} \(<0{,}2\)}\\[0.3em]
+{\small mm en el seguimiento\\de la trayectoria}
+\end{beamercolorbox}
+\end{column}
+\end{columns}
+\vspace{1.1em}
+{\small Ramzy, Hammad y Maged (2024). \emph{Applied Sciences, 14}(12), 5285.}\\[0.35em]
+{\small Masas, centros de masa, resortes y amortiguadores están en la Tabla~2 y no entran en esta simulación.}
+\end{frame}
+
+\end{document}
