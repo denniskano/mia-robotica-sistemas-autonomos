@@ -11,7 +11,7 @@ z = xyz(3);
 rho = hypot(x, y);
 
 if rho < 1e-9
-    error('La punta está en el eje de q1: q1 no queda determinado.');
+    error('robot:ejeQ1', 'La punta está en el eje de q1: q1 no queda determinado.');
 end
 
 phi = atan2(y, x);
@@ -25,7 +25,7 @@ A = x * cos(q1) + y * sin(q1);
 zp = z - p.l1;
 c3 = (A^2 + zp^2 - p.l2^2 - p.l3^2) / (2 * p.l2 * p.l3);
 if abs(c3) > 1 + 1e-9
-    error('Fuera de alcance: el codo no cierra para ese punto.');
+    error('robot:fueraAlcance', 'Fuera de alcance: el codo no cierra para ese punto.');
 end
 c3 = max(-1, min(1, c3));
 s3 = codo * sqrt(1 - c3^2);
