@@ -10,7 +10,6 @@
 \usepackage{graphicx}
 \usepackage{tikz}
 \usepackage{enumitem}
-\usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{setspace}
 
@@ -26,8 +25,6 @@
 \graphicspath{{../matlab/figuras/}{figuras/}{./}}
 
 \newcommand{\DHL}{\ensuremath{\mathrm{DHL}}}
-% Texto que el autor debe completar antes de entregar.
-\newcommand{\pendiente}[1]{\textcolor{red}{[#1]}}
 % Figura de la simulación: si el PNG aún no existe, deja un recuadro.
 \newcommand{\figsim}[2]{%
   \IfFileExists{../matlab/figuras/#1.png}%
@@ -256,7 +253,13 @@ En cambio, la columna teórica del artículo no se obtiene con \(l_2=0{,}29\)~m.
 
 \section{Opinión personal}
 
-\pendiente{Esta sección debe redactarla el autor con sus propias palabras, como exige el enunciado.}
+El banco de Ramzy et al.\ (2024) flexiona. Para este parcial nos quedamos igual con la cadena rígida. El artículo calcula la posición de esa manera, y al repetir sus 26 posturas el error contra la cámara quedó entre 1 y 3,5~mm, del mismo orden que el que ellos reportan. Esa coincidencia nos basta para la cinemática. Para el experimento dinámico no la usaríamos: ahí los resortes y los amortiguadores sí mueven la punta, y un modelo rígido dejaría fuera lo que el banco quiere mostrar.
+
+La inversa fue la decisión que más discutimos. El artículo imprime las ecuaciones (9)--(12) y lo natural era copiarlas. En el punto de prueba el argumento del arco coseno sale del intervalo \([-1,1]\) y la postura no regresa. Preferimos la inversa geométrica de la clase 3, deducida de (6)--(8), porque es la que cierra con la directa del mismo paper. Publicar una fórmula no la vuelve utilizable. Comprobarla contra la posición que el artículo sí escribe bien nos parece parte del trabajo.
+
+En el control dejamos las dos opciones que el curso abrió. El polinomio articular va de una postura a otra sin salir del espacio de las articulaciones, y sale y llega en reposo. El cartesiano es el que justifica haber calculado el jacobiano: la ley de la clase 7 lleva la punta al punto y después la mantiene sobre la curva, con un error de seguimiento menor a 0,2~mm. En la exposición mostraríamos los dos y defenderíamos el cartesiano como cierre del parcial. Detener el lazo cuando \(|\det J|\) es casi cero evita disparar las velocidades. Para un robot que tenga que seguir trabajando cerca del codo estirado, esa parada se queda corta y haría falta otra ley.
+
+Dos números del informe no son del banco y no los presentaríamos como si lo fueran. Los límites articulares se eligieron para que el corte \(x=0\) se parezca a la Figura~5; el artículo no los da. Y \(l_2\) se dejó en 0,29~m, el valor publicado, aunque la columna teórica de la Tabla~3 se acerca más a 0,295~m. Ajustar el largo para perseguir esa columna ocultaría la diferencia. La medición con cámara ya valida la cinemática. Esos cinco milímetros hay que resolverlos antes de pasar a la dinámica.
 
 \section{Conclusiones}
 
