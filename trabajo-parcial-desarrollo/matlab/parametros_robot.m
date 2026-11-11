@@ -6,16 +6,16 @@ function p = parametros_robot()
 % Masas, centros de masa y momentos de la misma Tabla 2 no entran
 % en esta simulación: el parcial es cinemático.
 
-p.l1 = 0.04;
-p.l2 = 0.29;
-p.l3 = 0.240;
+p.l1 = 0.04;   % altura de la base al hombro (m), Tabla 2
+p.l2 = 0.29;   % largo del brazo (m), Tabla 2
+p.l3 = 0.240;   % largo del antebrazo (m), Tabla 2
 p.a1 = 0;
 p.a2 = p.l2;
 p.a3 = p.l3;
 p.d1 = p.l1;
 p.d2 = 0;
 p.d3 = 0;
-p.alpha = [pi / 2; 0; 0];
+p.alpha = [pi / 2; 0; 0];   % giro de cada eslabón (rad), Tabla 1
 
 % Límites articulares. El artículo no los publica. Se eligieron para que
 % el corte x = 0 del espacio de trabajo tenga la forma de herradura de la

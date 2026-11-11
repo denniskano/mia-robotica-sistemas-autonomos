@@ -8,28 +8,28 @@ function q = cinematica_inversa(xyz, p, codo, cintura)
 x = xyz(1);
 y = xyz(2);
 z = xyz(3);
-rho = hypot(x, y);
+rho = hypot(x, y);   % distancia horizontal de la punta al eje de q1 (m)
 
 if rho < 1e-9
     error('robot:ejeQ1', 'La punta está en el eje de q1: q1 no queda determinado.');
 end
 
-phi = atan2(y, x);
+phi = atan2(y, x);   % ángulo de la punta en el plano xy
 if cintura > 0
     q1 = phi;
 else
     q1 = phi + pi;
 end
 
-A = x * cos(q1) + y * sin(q1);
-zp = z - p.l1;
-c3 = (A^2 + zp^2 - p.l2^2 - p.l3^2) / (2 * p.l2 * p.l3);
+A = x * cos(q1) + y * sin(q1);   % alcance horizontal desde la base (m)
+zp = z - p.l1;   % altura de la punta sobre el hombro (m)
+c3 = (A^2 + zp^2 - p.l2^2 - p.l3^2) / (2 * p.l2 * p.l3);   % coseno de q3 por la ley del coseno
 if abs(c3) > 1 + 1e-9
     error('robot:fueraAlcance', 'Fuera de alcance: el codo no cierra para ese punto.');
 end
 c3 = max(-1, min(1, c3));
-s3 = codo * sqrt(1 - c3^2);
-q3 = atan2(s3, c3);
-q2 = atan2(zp, A) - atan2(p.l3 * s3, p.l2 + p.l3 * c3);
+s3 = codo * sqrt(1 - c3^2);   % seno de q3; el signo lo fija el codo
+q3 = atan2(s3, c3);   % ángulo del codo (rad)
+q2 = atan2(zp, A) - atan2(p.l3 * s3, p.l2 + p.l3 * c3);   % ángulo del hombro (rad)
 q = [q1; q2; q3];
 end

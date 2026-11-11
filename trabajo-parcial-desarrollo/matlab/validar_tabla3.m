@@ -42,21 +42,22 @@ T = [88.69, 71.61, -86.82,   NaN, 326.45,  262.15,   NaN, 324.66,  256.96; ...
      -3.09,  1.88,   6.60, 530.18, -28.58,    NaN, 534.22, -28.83,    NaN; ...
      88.69,  1.88,   6.60,   NaN, 532.18,   30.27,   NaN, 533.88,   29.92];
 
-r.q_impreso = T(:, 1:3);
+r.q_impreso = T(:, 1:3);   % ángulos tal como se imprimen (grados)
 q = deg2rad(T(:, 1:3));
 q(19:26, 3) = -q(19:26, 3);          % errata 1
 r.q = q;
-r.experimental = T(:, 4:6);
-r.teorica = T(:, 7:9);
-n = size(T, 1);
+r.experimental = T(:, 4:6);   % posición medida con cámara (mm)
+r.teorica = T(:, 7:9);   % posición calculada por los autores (mm)
+n = size(T, 1);   % número de posturas (26)
 
 % Directa con los largos de la Tabla 2, en mm.
 r.modelo = zeros(n, 3);
+% Directa de las 26 posturas con los largos de la Tabla 2 (mm).
 for k = 1:n
     r.modelo(k, :) = 1000 * cinematica_directa(q(k, :)', p)';
 end
-r.err_exp = r.modelo - r.experimental;
-r.err_teo = r.modelo - r.teorica;
+r.err_exp = r.modelo - r.experimental;   % error del modelo contra la cámara (mm)
+r.err_teo = r.modelo - r.teorica;   % error del modelo contra la teórica del artículo (mm)
 
 % Ajuste de largos a la columna teórica: posición = M(q) * [l1; l2; l3].
 [M, b] = sistema_lineal(q, r.teorica);
@@ -69,6 +70,7 @@ pa.d1 = pa.l1;
 pa.a2 = pa.l2;
 pa.a3 = pa.l3;
 r.modelo_ajuste = zeros(n, 3);
+% Directa de las mismas posturas con los largos ajustados (mm).
 for k = 1:n
     r.modelo_ajuste(k, :) = 1000 * cinematica_directa(q(k, :)', pa)';
 end
@@ -89,6 +91,7 @@ end
 function [M, b] = sistema_lineal(q, ref)
 M = [];
 b = [];
+% Arma filas de M y b con las posiciones teóricas de cada postura.
 for k = 1:size(q, 1)
     c1 = cos(q(k, 1));
     s1 = sin(q(k, 1));
@@ -99,6 +102,7 @@ for k = 1:size(q, 1)
     filas = [0, c1 * c2, c1 * c23; ...
              0, s1 * c2, s1 * c23; ...
              1, s2,      s23];
+    % Descarta las coordenadas que el artículo no reporta (NaN).
     for i = 1:3
         if ~isnan(ref(k, i))
             M = [M; filas(i, :)]; %#ok<AGROW>

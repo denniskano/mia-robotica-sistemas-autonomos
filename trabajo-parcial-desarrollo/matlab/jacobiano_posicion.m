@@ -13,9 +13,10 @@ c2 = cos(q2);
 s2 = sin(q2);
 c23 = cos(q2 + q3);
 s23 = sin(q2 + q3);
-A = p.l2 * c2 + p.l3 * c23;
-B = p.l2 * s2 + p.l3 * s23;
+A = p.l2 * c2 + p.l3 * c23;   % alcance horizontal del brazo (m)
+B = p.l2 * s2 + p.l3 * s23;   % altura del brazo sobre la base (m)
 
+% derivadas de [x y z] respecto de [q1 q2 q3] (m/rad)
 J = [-s1 * A,  -c1 * B,  -c1 * p.l3 * s23; ...
       c1 * A,  -s1 * B,  -s1 * p.l3 * s23; ...
       0,        A,        p.l3 * c23];
