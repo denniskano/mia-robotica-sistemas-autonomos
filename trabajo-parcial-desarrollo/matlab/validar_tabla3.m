@@ -52,6 +52,7 @@ n = size(T, 1);
 
 % Directa con los largos de la Tabla 2, en mm.
 r.modelo = zeros(n, 3);
+% Directa de las 26 posturas con los largos de la Tabla 2 (mm).
 for k = 1:n
     r.modelo(k, :) = 1000 * cinematica_directa(q(k, :)', p)';
 end
@@ -69,6 +70,7 @@ pa.d1 = pa.l1;
 pa.a2 = pa.l2;
 pa.a3 = pa.l3;
 r.modelo_ajuste = zeros(n, 3);
+% Directa de las mismas posturas con los largos ajustados (mm).
 for k = 1:n
     r.modelo_ajuste(k, :) = 1000 * cinematica_directa(q(k, :)', pa)';
 end
@@ -89,6 +91,7 @@ end
 function [M, b] = sistema_lineal(q, ref)
 M = [];
 b = [];
+% Arma filas de M y b con las posiciones teóricas de cada postura.
 for k = 1:size(q, 1)
     c1 = cos(q(k, 1));
     s1 = sin(q(k, 1));
@@ -99,6 +102,7 @@ for k = 1:size(q, 1)
     filas = [0, c1 * c2, c1 * c23; ...
              0, s1 * c2, s1 * c23; ...
              1, s2,      s23];
+    % Descarta las coordenadas que el artículo no reporta (NaN).
     for i = 1:3
         if ~isnan(ref(k, i))
             M = [M; filas(i, :)]; %#ok<AGROW>
@@ -110,6 +114,10 @@ end
 
 function imprimir(nombre, E)
 fprintf('%-38s %8.2f %8.2f %8.2f %8.2f\n', nombre, ...
-    mean(abs(E(:, 1)), 'omitnan'), mean(abs(E(:, 2)), 'omitnan'), ...
-    mean(abs(E(:, 3)), 'omitnan'), max(abs(E(:)), [], 'omitnan'));
+    mean(abs(sin_nan(E(:, 1)))), mean(abs(sin_nan(E(:, 2)))), ...
+    mean(abs(sin_nan(E(:, 3)))), max(abs(sin_nan(E(:)))));
+end
+
+function v = sin_nan(v)
+v = v(~isnan(v));
 end

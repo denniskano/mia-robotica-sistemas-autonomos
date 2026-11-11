@@ -12,7 +12,7 @@ if tf <= 0
 end
 tau = t - t(1);
 
-if tipo == "cubica"
+if strcmp(tipo, "cubica")
     a0 = qi;
     a1 = zeros(3, 1);
     a2 = 3 * Delta / tf^2;
@@ -20,7 +20,7 @@ if tipo == "cubica"
     q = a0 + a1 .* tau + a2 .* tau.^2 + a3 .* tau.^3;
     qp = a1 + 2 * a2 .* tau + 3 * a3 .* tau.^2;
     qpp = 2 * a2 + 6 * a3 .* tau;
-elseif tipo == "quintica"
+elseif strcmp(tipo, "quintica")
     a0 = qi;
     a1 = zeros(3, 1);
     a2 = zeros(3, 1);

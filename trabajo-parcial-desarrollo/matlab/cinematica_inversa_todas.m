@@ -11,6 +11,7 @@ combinaciones = [ 1,  1; ...
 etiquetas = ["cintura +, codo +", "cintura +, codo -", ...
              "cintura -, codo +", "cintura -, codo -"];
 Q = nan(3, 4);
+% Prueba las cuatro combinaciones de cintura y codo.
 for k = 1:4
     cintura = combinaciones(k, 1);
     codo = combinaciones(k, 2);
