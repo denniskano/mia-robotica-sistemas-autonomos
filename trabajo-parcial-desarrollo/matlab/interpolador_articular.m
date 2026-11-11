@@ -5,26 +5,26 @@ function [q, qp, qpp] = interpolador_articular(qi, qf, t, tipo)
 
 qi = qi(:);
 qf = qf(:);
-Delta = qf - qi;
-tf = t(end) - t(1);
+Delta = qf - qi;   % desplazamiento total de cada articulación (rad)
+tf = t(end) - t(1);   % duración del movimiento (s)
 if tf <= 0
     error('El tiempo final tiene que ser mayor que el inicial.');
 end
-tau = t - t(1);
+tau = t - t(1);   % tiempo desde el inicio (s)
 
-if strcmp(tipo, "cubica")
+if tipo == "cubica"
     a0 = qi;
     a1 = zeros(3, 1);
-    a2 = 3 * Delta / tf^2;
+    a2 = 3 * Delta / tf^2;   % coeficientes del cúbico, reposo a reposo
     a3 = -2 * Delta / tf^3;
     q = a0 + a1 .* tau + a2 .* tau.^2 + a3 .* tau.^3;
     qp = a1 + 2 * a2 .* tau + 3 * a3 .* tau.^2;
     qpp = 2 * a2 + 6 * a3 .* tau;
-elseif strcmp(tipo, "quintica")
+elseif tipo == "quintica"
     a0 = qi;
     a1 = zeros(3, 1);
     a2 = zeros(3, 1);
-    a3 = 10 * Delta / tf^3;
+    a3 = 10 * Delta / tf^3;   % coeficientes del quíntico, reposo a reposo
     a4 = -15 * Delta / tf^4;
     a5 = 6 * Delta / tf^5;
     q = a0 + a1 .* tau + a2 .* tau.^2 + a3 .* tau.^3 + a4 .* tau.^4 + a5 .* tau.^5;

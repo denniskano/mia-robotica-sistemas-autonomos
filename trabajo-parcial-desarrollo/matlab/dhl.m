@@ -1,25 +1,28 @@
 function M = dhl(theta, d, a, alpha)
 % DHL  Misma convención que clase-02/DHL.mlx: Rz(theta) * Trans(a,0,d) * Rx(alpha).
 % theta y alpha en radianes. Rx va escrito para no pedir Robotics System Toolbox.
-ct = cos(theta);
+ct = cos(theta);   % coseno de la rotación alrededor de z
 st = sin(theta);
-ca = cos(alpha);
+ca = cos(alpha);   % coseno de la rotación alrededor de x
 sa = sin(alpha);
 
+% rotación de theta alrededor de z
 Mrot_z = [ct, -st, 0, 0; ...
           st,  ct, 0, 0; ...
            0,   0, 1, 0; ...
            0,   0, 0, 1];
 
+% traslación a a lo largo de x y d a lo largo de z
 transl = [1, 0, 0, a; ...
           0, 1, 0, 0; ...
           0, 0, 1, d; ...
           0, 0, 0, 1];
 
+% rotación de alpha alrededor de x
 Mrot_x = [1,  0,   0, 0; ...
           0, ca, -sa, 0; ...
           0, sa,  ca, 0; ...
           0,  0,   0, 1];
 
-M = Mrot_z * transl * Mrot_x;
+M = Mrot_z * transl * Mrot_x;   % matriz homogénea 4x4 del eslabón
 end

@@ -42,13 +42,13 @@ T = [88.69, 71.61, -86.82,   NaN, 326.45,  262.15,   NaN, 324.66,  256.96; ...
      -3.09,  1.88,   6.60, 530.18, -28.58,    NaN, 534.22, -28.83,    NaN; ...
      88.69,  1.88,   6.60,   NaN, 532.18,   30.27,   NaN, 533.88,   29.92];
 
-r.q_impreso = T(:, 1:3);
+r.q_impreso = T(:, 1:3);   % ángulos tal como se imprimen (grados)
 q = deg2rad(T(:, 1:3));
 q(19:26, 3) = -q(19:26, 3);          % errata 1
 r.q = q;
-r.experimental = T(:, 4:6);
-r.teorica = T(:, 7:9);
-n = size(T, 1);
+r.experimental = T(:, 4:6);   % posición medida con cámara (mm)
+r.teorica = T(:, 7:9);   % posición calculada por los autores (mm)
+n = size(T, 1);   % número de posturas (26)
 
 % Directa con los largos de la Tabla 2, en mm.
 r.modelo = zeros(n, 3);
@@ -56,8 +56,8 @@ r.modelo = zeros(n, 3);
 for k = 1:n
     r.modelo(k, :) = 1000 * cinematica_directa(q(k, :)', p)';
 end
-r.err_exp = r.modelo - r.experimental;
-r.err_teo = r.modelo - r.teorica;
+r.err_exp = r.modelo - r.experimental;   % error del modelo contra la cámara (mm)
+r.err_teo = r.modelo - r.teorica;   % error del modelo contra la teórica del artículo (mm)
 
 % Ajuste de largos a la columna teórica: posición = M(q) * [l1; l2; l3].
 [M, b] = sistema_lineal(q, r.teorica);
@@ -114,10 +114,6 @@ end
 
 function imprimir(nombre, E)
 fprintf('%-38s %8.2f %8.2f %8.2f %8.2f\n', nombre, ...
-    mean(abs(sin_nan(E(:, 1)))), mean(abs(sin_nan(E(:, 2)))), ...
-    mean(abs(sin_nan(E(:, 3)))), max(abs(sin_nan(E(:)))));
-end
-
-function v = sin_nan(v)
-v = v(~isnan(v));
+    mean(abs(E(:, 1)), 'omitnan'), mean(abs(E(:, 2)), 'omitnan'), ...
+    mean(abs(E(:, 3)), 'omitnan'), max(abs(E(:)), [], 'omitnan'));
 end

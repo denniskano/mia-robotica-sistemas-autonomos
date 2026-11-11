@@ -10,7 +10,7 @@ combinaciones = [ 1,  1; ...
                  -1, -1];
 etiquetas = ["cintura +, codo +", "cintura +, codo -", ...
              "cintura -, codo +", "cintura -, codo -"];
-Q = nan(3, 4);
+Q = nan(3, 4);   % una columna por solución (rad)
 % Prueba las cuatro combinaciones de cintura y codo.
 for k = 1:4
     cintura = combinaciones(k, 1);

@@ -6,7 +6,7 @@
 clear
 close all
 clc
-figs = [];   % solo se exportan las figuras de este script
+figs = gobjects(0, 1);   % solo se exportan las figuras de este script
 
 p = parametros_robot();
 fprintf('Robot de Ramzy, Hammad y Maged (2024), Tabla 2.\n');
@@ -95,7 +95,7 @@ for i = 1:3
                    cinematica_directa(q_prueba - e_i, p)) / (2 * dq);
 end
 fprintf('Jacobiano analítico vs numérico: max |dif| = %.3e\n', ...
-    max(max(abs(jacobiano_posicion(q_prueba, p) - J_num))));
+    max(abs(jacobiano_posicion(q_prueba, p) - J_num), [], 'all'));
 
 % 2) Velocidad de la punta sobre una trayectoria articular quíntica (clase 6):
 %    v = J(q) qp contra la derivada numérica de la posición.
@@ -115,10 +115,10 @@ end
 v_num = zeros(3, numel(t_dif));
 % Derivada numérica de cada coordenada de la posición, para comparar con J*qp.
 for i = 1:3
-    v_num(i, :) = gradient(pos_dif(i, :), t_dif(2) - t_dif(1));
+    v_num(i, :) = gradient(pos_dif(i, :), t_dif);
 end
 fprintf('Velocidad J*qp vs derivada numérica: max |dif| = %.3e m/s (vel. máx %.3f m/s)\n\n', ...
-    max(max(abs(v_jac(:, 2:end-1) - v_num(:, 2:end-1)))), max(sqrt(sum(v_jac.^2, 1))));
+    max(abs(v_jac(:, 2:end-1) - v_num(:, 2:end-1)), [], 'all'), max(vecnorm(v_jac)));
 
 %% Diapositiva 9: control de posición. Ley de la clase 7: qp = pinv(J) * K * tanh(e), K = 8 I
 q_meta = [0.4; 0.8; -0.7];                % postura de la que sale el blanco (rad)
@@ -192,7 +192,7 @@ for k = 1:N2 - 1
     q = q + ts2 * qp;
     h(:, k + 1) = cinematica_directa(q, p);
 end
-err_seg = sqrt(sum((hd - h).^2, 1));  % norma del error en cada instante (m)
+err_seg = vecnorm(hd - h);  % norma del error en cada instante (m)
 fprintf('Seguimiento. Error máximo = %.4e m. Error final = %.4e m.\n', ...
     max(err_seg), err_seg(end));
 if singular_seg
@@ -224,7 +224,7 @@ fprintf('  x en [% .3f, % .3f], y en [% .3f, % .3f], z en [% .3f, % .3f]\n', ...
     min(P_ws(1, :)), max(P_ws(1, :)), min(P_ws(2, :)), max(P_ws(2, :)), ...
     min(P_ws(3, :)), max(P_ws(3, :)));
 fprintf('  alcance máximo desde la base = %.3f m (l1 + l2 + l3 = %.3f m)\n\n', ...
-    max(sqrt(sum(P_ws.^2, 1))), p.l1 + p.l2 + p.l3);
+    max(vecnorm(P_ws)), p.l1 + p.l2 + p.l3);
 
 %% Diapositiva 12: validación contra la Tabla 3 del artículo. No es de clase.
 val = validar_tabla3(p);
@@ -304,11 +304,7 @@ ylabel('Modelo con Tabla 2 (mm)')
 title('Modelo vs medición')
 legend('y', 'z', 'x', 'ideal', 'Location', 'best')
 subplot(1, 2, 2)
-e2_exp = val.err_exp .^ 2;
-e2_exp(isnan(e2_exp)) = 0;
-e2_teo = val.err_teo .^ 2;
-e2_teo(isnan(e2_teo)) = 0;
-bar([sqrt(sum(e2_exp, 2)), sqrt(sum(e2_teo, 2))])
+bar([sqrt(sum(val.err_exp .^ 2, 2, 'omitnan')), sqrt(sum(val.err_teo .^ 2, 2, 'omitnan'))])
 grid on
 xlabel('Postura de la Tabla 3')
 ylabel('Error (mm)')
@@ -319,7 +315,7 @@ title('Error por postura')
 figs(end + 1) = figure('Name', 'Error de control');
 subplot(2, 1, 1)
 t_pos = (0:nfin - 1) * ts;
-semilogy(t_pos, sqrt(sum((objetivo - historia(:, 1:nfin)).^2, 1)))
+semilogy(t_pos, vecnorm(objetivo - historia(:, 1:nfin)))
 grid on
 xlabel('t (s)')
 ylabel('||e|| (m)')
@@ -386,14 +382,11 @@ carpeta = 'figuras';
 if ~exist(carpeta, 'dir')
     mkdir(carpeta);
 end
-acentos = {'á', 'a'; 'é', 'e'; 'í', 'i'; 'ó', 'o'; 'ú', 'u'; 'ñ', 'n'};
 % Exporta cada figura con un nombre de archivo sin espacios ni acentos.
 for k = 1:numel(figs)
-    nombre = lower(strrep(get(figs(k), 'Name'), ' ', '_'));
+    nombre = lower(strrep(figs(k).Name, ' ', '_'));
     % Reemplaza cada acento por su letra sin acento.
-for a = 1:size(acentos, 1)
-        nombre = strrep(nombre, acentos{a, 1}, acentos{a, 2});
-    end
+    nombre = char(replace(nombre, ["á", "é", "í", "ó", "ú", "ñ"], ["a", "e", "i", "o", "u", "n"]));
     nombre = regexprep(nombre, '[^a-z0-9_]', '');
     % El prefijo numérico ordena los anexos y evita choques de nombres.
     archivo = fullfile(carpeta, sprintf('%02d_%s.png', k, nombre));
@@ -404,3 +397,13 @@ for a = 1:size(acentos, 1)
     end
 end
 fprintf('Figuras guardadas en %s\n', carpeta);
+
+function xyz = posicion_paper(q, p)
+q1 = q(1);
+q2 = q(2);
+q3 = q(3);
+A = p.l2 * cos(q2) + p.l3 * cos(q2 + q3);
+xyz = [cos(q1) * A; ...
+       sin(q1) * A; ...
+       p.l1 + p.l2 * sin(q2) + p.l3 * sin(q2 + q3)];
+end
